@@ -26,7 +26,7 @@ pip install -r requirements.txt
 ## Data
 
 ### Situation Recognition (Visual Event Extraction Data)
-We download situation recognition data from [imSitu](http://imsitu.org/) . Please find the preprocessed data in [PreprcessedSR](https://drive.google.com/drive/folders/1h0qwYWeGEoCx8m-zwH-XcoPSyffmrC-c?usp=sharing).
+We download situation recognition data from [imSitu](http://imsitu.org/). Please find the preprocessed data in [PreprcessedSR](https://drive.google.com/drive/folders/1h0qwYWeGEoCx8m-zwH-XcoPSyffmrC-c?usp=sharing).
 
 ### ACE (Text Event Extraction Data)
 We preprcoessed ACE following [JMEE](https://github.com/lx865712528/EMNLP2018-JMEE/tree/master). The preprocessing script is in `dataflow/preprocess_ace_JMEE.py`, and the sample data format is in [sample.json](https://github.com/lx865712528/EMNLP2018-JMEE/blob/master/ace-05-splits/sample.json). Due to license reason, the ACE 2005 dataset is only accessible to those with LDC2006T06 license, please drop me an email showing your possession of the license for the processed data.
@@ -37,6 +37,9 @@ We crawled VOA image-captions to train the common space, including [images](http
 ### M2E2 (Multimedia Event Extraction Benchmark)
 
 The images and text articles are in [m2e2_rawdata](https://drive.google.com/file/d/1xtFMjt_eYgeBts5rBomOWbPo7wV_mnhy/view?usp=sharing), and annotations are in [m2e2_annotation](http://blender.cs.illinois.edu/software/m2e2/m2e2_v0.1/m2e2_annotations.tgz).
+
+### Vocabulary
+Preprocessed vocabulary is in [PreprocessedVocab](https://drive.google.com/drive/folders/1MWklNkpedJp-P80wpKF-WOQAvYaYKzP2?usp=sharing).
 
 
 ## Quickstart
