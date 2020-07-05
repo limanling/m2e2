@@ -12,7 +12,7 @@ Table of Contents
 The code for paper [Cross-media Structured Common Space for Multimedia Event Extraction](http://blender.cs.illinois.edu/software/m2e2/).
 
 <p align="center">
-  <img src="./training-testing.png" alt="Photo" style="width="100%;"/>
+  <img src="./training-testing.jpg" alt="Photo" style="width="100%;"/>
 </p>
 
 ## Requirements
