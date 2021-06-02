@@ -13,9 +13,10 @@ def download_image_list(meta_json, dir_save):
     for doc_id in metadata:
         for img_id in metadata[doc_id]:
             url_image = metadata[doc_id][img_id]['url']
-            image_path_save = os.path.join(dir_save, '%s_%s.jpg' % (doc_id, img_id))
-            if not url_image.endswith('.jpg'):
-                print(image_path_save, url_image)
+            suffix_image = metadata[doc_id][img_id]['url'].split('.')[-1]
+            image_path_save = os.path.join(dir_save, '%s_%s.%s' % (doc_id, img_id, suffix_image))
+            # if not url_image.endswith('.jpg'):
+            #     print(image_path_save, url_image)
             download_image(url_image, image_path_save)
         
 

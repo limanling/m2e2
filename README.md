@@ -29,10 +29,10 @@ pip install -r requirements.txt
 We download situation recognition data from [imSitu](http://imsitu.org/). Please find the preprocessed data in [PreprcessedSR](https://drive.google.com/drive/folders/1h0qwYWeGEoCx8m-zwH-XcoPSyffmrC-c?usp=sharing).
 
 ### ACE (Text Event Extraction Data)
-We preprcoessed ACE following [JMEE](https://github.com/lx865712528/EMNLP2018-JMEE/tree/master). The preprocessing script is in `dataflow/preprocess_ace_JMEE.py`, and the sample data format is in [sample.json](https://github.com/lx865712528/EMNLP2018-JMEE/blob/master/ace-05-splits/sample.json). Due to license reason, the ACE 2005 dataset is only accessible to those with LDC2006T06 license, please drop me an email showing your possession of the license for the processed data.
+We preprcoessed ACE following [JMEE](https://github.com/lx865712528/EMNLP2018-JMEE/tree/master). The sample data format is in [sample.json](https://github.com/lx865712528/EMNLP2018-JMEE/blob/master/ace-05-splits/sample.json). Due to license reason, the ACE 2005 dataset is only accessible to those with LDC2006T06 license, please drop me an email `manling2@illinois.edu` showing your possession of the license for the processed data.
 
 ### Voice of America Image-Caption Pairs
-We crawled VOA image-captions to train the common space, the [image-caption pairs](https://uofi.box.com/s/xtn9p6m8z5qtjbbi5tqrl45tn6apew4x) and images can be downloaded using the URLs (We share image URLs instead of downloaded images due to license issue). We preprocess the data including object detection, and parse text sentences. The preprocessed data is in [PreprocessedVOA](https://drive.google.com/drive/folders/1I9vMGIhWZpKqxQYip91eLoDRnrkqRxnt?usp=sharing).
+We crawled VOA image-captions to train the common space, the [image-caption pairs](https://uofi.box.com/s/xtn9p6m8z5qtjbbi5tqrl45tn6apew4x) and images can be downloaded using the URLs (We share image URLs instead of downloaded images due to license issue) using script in [dataset_image_download.py](https://github.com/limanling/m2e2/blob/master/src/dataflow/numpy/dataset_image_download.py). We preprocess the data including object detection, and parse text sentences. The preprocessed data is in [PreprocessedVOA](https://drive.google.com/drive/folders/1I9vMGIhWZpKqxQYip91eLoDRnrkqRxnt?usp=sharing).
 
 ### M2E2 (Multimedia Event Extraction Benchmark)
 
