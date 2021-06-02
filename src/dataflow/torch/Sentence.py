@@ -170,6 +170,10 @@ class Sentence:
 class Sentence_ace(Sentence):
     def __init__(self, json_content, graph_field_name):
         Sentence.__init__(self, json_content)
+        if "sentence_id" in json_content:
+            self.sentence_id = json_content["sentence_id"]
+        else: 
+            self.sentence_id = "none"
         self.wordList = json_content["words"][:CUTOFF]
         self.posLabelList = json_content["pos-tags"][:CUTOFF]
         # self.lemmaList = json_content["lemma"][:CUTOFF]

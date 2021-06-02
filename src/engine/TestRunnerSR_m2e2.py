@@ -5,6 +5,7 @@ import sys
 from functools import partial
 # import json
 import ujson as json
+import pickle
 from collections import defaultdict
 import shutil
 
@@ -153,15 +154,16 @@ class JointRunnerTest(object):
         # only for ee
         LabelField = Field(lower=False, batch_first=True, pad_token='0', unk_token=None)
         EventsField = EventField(lower=False, batch_first=True)
+        SENTIDField = SparseField(sequential=False, use_vocab=False, batch_first=True)
 
         if self.a.amr:
-            colcc = 'amr-colcc'
+            colcc = 'simple-parsing'
         else:
-            colcc = 'stanford-colcc'
+            colcc = 'combined-parsing'
         print(colcc)
 
         train_ee_set = ACE2005Dataset(path=self.a.train_ee,
-                                   fields={"words": ("WORDS", WordsField),
+                                   fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
                                            "pos-tags": ("POSTAGS", PosTagsField),
                                            "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                            colcc: ("ADJM", AdjMatrixField),
@@ -171,7 +173,7 @@ class JointRunnerTest(object):
                                    amr=self.a.amr, keep_events=1)
 
         dev_ee_set = ACE2005Dataset(path=self.a.dev_ee,
-                                 fields={"words": ("WORDS", WordsField),
+                                 fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
                                          "pos-tags": ("POSTAGS", PosTagsField),
                                          "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                          colcc: ("ADJM", AdjMatrixField),
@@ -181,7 +183,7 @@ class JointRunnerTest(object):
                                  amr=self.a.amr, keep_events=0)
 
         # test_ee_set = ACE2005Dataset(path=self.a.test_ee,
-        #                           fields={"words": ("WORDS", WordsField),
+        #                           fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
         #                                   "pos-tags": ("POSTAGS", PosTagsField),
         #                                   "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
         #                                   colcc: ("ADJM", AdjMatrixField),
@@ -293,7 +295,7 @@ class JointRunnerTest(object):
         # print("O label for AE is", consts.ROLE_O_LABEL)
 
         # dev_ee_set1 = ACE2005Dataset(path=self.a.dev_ee,
-        #                           fields={"words": ("WORDS", WordsField),
+        #                           fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
         #                                   "pos-tags": ("POSTAGS", PosTagsField),
         #                                   "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
         #                                   colcc: ("ADJM", AdjMatrixField),
@@ -303,7 +305,7 @@ class JointRunnerTest(object):
         #                           amr=self.a.amr, keep_events=1, only_keep=True)
         #
         # test_ee_set1 = ACE2005Dataset(path=self.a.test_ee,
-        #                            fields={"words": ("WORDS", WordsField),
+        #                            fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
         #                                    "pos-tags": ("POSTAGS", PosTagsField),
         #                                    "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
         #                                    colcc: ("ADJM", AdjMatrixField),
@@ -541,6 +543,7 @@ class JointRunnerTest(object):
                 )
 
         print('vision_result size', len(vision_result))
+        # pickle.dump(vision_result, open(os.path.join(self.a.out, 'vision_result.pkl'), 'w'))
 
         # ep, er, ef = ee_tester.calculate_report(all_y, all_y_, transform=True)
         # ap, ar, af = ee_tester.calculate_sets(all_events, all_events_)
@@ -596,7 +599,7 @@ def joint_test_batch(model_g, batch_g, device, transform, img_dir,
         sent_id, entities, y_gt, events_gt = batch_unpacked
 
     for batch_id in range(len(image_id)):
-        doc_id = sent_id[batch_id][:sent_id[batch_id].find('.rsd')]
+        doc_id = sent_id[batch_id][:sent_id[batch_id].rfind('-')]
         if doc_id in doc_done:
             return vision_result
         doc_done.add(doc_id)
@@ -621,11 +624,14 @@ def joint_test_batch(model_g, batch_g, device, transform, img_dir,
             img_id = image_id[batch_id][img_idx]
             if img_id in image_done:
                 continue
+            # print(len(sr_verb_), sr_verb_[batch_id][img_idx], sr_verb_i2s[sr_verb_[batch_id][img_idx]], len(vision_result))
             verb_name = sr_verb_i2s[sr_verb_[batch_id][img_idx]]
+            # print(img_id, verb_name)
+            vision_result[img_id] = dict()
+            vision_result[img_id]['verb'] = verb_name
             if verb_name not in verb2type:
                 continue
             ace_type_name = verb2type[verb_name]
-            vision_result[img_id] = dict()
             if img_id.replace('.jpg', '') in image_gt:
                 vision_result[img_id]['ground_truth'] = image_gt[img_id.replace('.jpg', '')]
             else:
@@ -634,7 +640,6 @@ def joint_test_batch(model_g, batch_g, device, transform, img_dir,
                 vision_result[img_id]['ground_truth'] = dict()
                 vision_result[img_id]['ground_truth']['role'] = dict()
                 vision_result[img_id]['ground_truth']['event_type'] = consts.O_LABEL_NAME
-            vision_result[img_id]['verb'] = verb_name
             vision_result[img_id]['event_type'] = ace_type_name
             vision_result[img_id]['role'] = dict()
             if not load_object:
@@ -645,6 +650,7 @@ def joint_test_batch(model_g, batch_g, device, transform, img_dir,
                 if sr_role_[batch_id][img_idx][role_idx] != 0:
                     sr_role_name = sr_role_i2s[role_idx]
                     ace_role_name = role2role[verb_name][sr_role_name]
+                    # print(role2role)
                     if not load_object:
                         vision_result[img_id]['role'][ace_role_name] = sr_noun_i2s[
                             sr_role_[batch_id][img_idx][role_idx]]
@@ -655,10 +661,11 @@ def joint_test_batch(model_g, batch_g, device, transform, img_dir,
                         if role_idx < obj_num:
                             obj_current_id = bbox_entities_id_all[batch_id][img_idx][role_idx]
                             obj_current_bbox = [int(x) for x in bbox_entities_id_all[batch_id][img_idx][role_idx].split('_')]
-                            obj_current_region = bbox_entities_region_all[batch_id][img_idx][role_idx]
+                            # obj_current_region = bbox_entities_region_all[batch_id][img_idx][role_idx]
                             obj_current_label = bbox_entities_label_all[batch_id][img_idx][role_idx]
                             vision_result[img_id]['role'][ace_role_name].append( (obj_current_id, obj_current_bbox,
-                                                                   obj_current_region, obj_current_label) )
+                                                                   obj_current_label) ) #obj_current_region, obj_current_label) )
+                        # print('ace_role_name', img_id, ',', verb_name, sr_role_name, ',', ace_role_name, ',', len(vision_result[img_id]['role'][ace_role_name]))
 
             image_done.add(img_id)
 

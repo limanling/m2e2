@@ -69,9 +69,21 @@ class EventField(Field):
 
     def numericalize(self, arr, device=None, train=True):
         if self.use_vocab:
-            arr = [{key: [(v[0], v[1], self.vocab.stoi[v[2]]) for v in value] for key, value in dd.items()} for dd in
-                   arr]
-        return arr
+            # arr = [{key: [(v[0], v[1], self.vocab.stoi[v[2]]) for v in value] for key, value in dd.items()} for dd in
+            #        arr]
+            arr_num = list()
+            for dd in arr:
+                dd_dict = dict()
+                for key, value in dd.items():
+                    value_list = []
+                    for v in value:
+                        if v[2] in self.vocab.stoi:
+                            value_list.append( (v[0], v[1], self.vocab.stoi[v[2]]) )
+                        else:
+                            value_list.append( (v[0], v[1], 0) )
+                    dd_dict[key] = value_list
+                arr_num.append(dd_dict)
+        return arr_num
 
 
 class MultiTokenField(Field):
@@ -217,14 +229,15 @@ class ACE2005Dataset(Corpus):
         return examples
 
     def parse_sentence(self, js, fields, amr):
+        SENTID = fields["sentence_id"]
         WORDS = fields["words"]
         POSTAGS = fields["pos-tags"]
         # LEMMAS = fields["lemma"]
         ENTITYLABELS = fields["golden-entity-mentions"]
         if amr:
-            colcc = "amr-colcc"
+            colcc = "simple-parsing"
         else:
-            colcc = "stanford-colcc"
+            colcc = "combined-parsing"
         # print(colcc)
         ADJMATRIX = fields[colcc]
         LABELS = fields["golden-event-mentions"]
@@ -234,6 +247,7 @@ class ACE2005Dataset(Corpus):
         sentence = Sentence_ace(json_content=js, graph_field_name=colcc)
         ex = Example()
         # print('sentence.wordList', WORDS[1].preprocess(sentence.wordList))
+        setattr(ex, SENTID[0], SENTID[1].preprocess(sentence.sentence_id))
         setattr(ex, WORDS[0], WORDS[1].preprocess(sentence.wordList))
         setattr(ex, POSTAGS[0], POSTAGS[1].preprocess(sentence.posLabelList))
         # setattr(ex, LEMMAS[0], LEMMAS[1].preprocess(sentence.lemmaList))

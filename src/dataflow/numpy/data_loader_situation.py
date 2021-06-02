@@ -33,19 +33,24 @@ def get_labels(class_map_file):
     with open(class_map_file, mode='r') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
-            isArgType = int(row[2])
-            if isArgType:
+            # isArgType = int(row[2])
+            # if isArgType:
+            if row[2] == '1':
                 label_name[row[0]] = row[1]
-    # print('object_label', label_name)
+    print('object_label', label_name)
     return label_name
 
 def load_img_object(img_id, image_dir, transform,
                     load_object=False, object_results=None,
                     object_label=None, object_detection_threshold=.1,
                     vocab_objlabel=None,
-                    object_topk=10,):
-    img_path = os.path.join(image_dir, img_id)
-    image = Image.open(img_path).convert('RGB')
+                    object_topk=50,):
+    try:
+        img_path = os.path.join(image_dir, img_id)
+        image = Image.open(img_path).convert('RGB')
+    except:
+        img_path = os.path.join(image_dir, img_id+'.png')
+        image = Image.open(img_path).convert('RGB')
     if transform is not None:
         image_vec = transform(image)
 
@@ -54,6 +59,15 @@ def load_img_object(img_id, image_dir, transform,
         bbox_entities_id = []
         bbox_entities_region = []
         bbox_entities_label = []
+
+        # pad the entire image to bbox vectors, in case the bbox is none
+        bbox_entities_id.append('0_0_0_0')
+        if transform is not None:
+            bbox_entities_region.append(image_vec)
+        else:
+            bbox_entities_region.append(image)
+        bbox_entities_label.append(consts.UNK_IDX)
+
         objects = object_results[img_id]
         objects_by_score = sorted(objects, key=itemgetter('score'))
         count = 1
@@ -221,9 +235,9 @@ class ImSituDataset(data.Dataset):
         for image_id in os.listdir(image_dir):
             if image_id not in self.annotation:
                 continue
-            if self.load_object and len(self.object_results[image_id]) == 0: #(image_id not in self.object_results or ):
-                # image does not have any objects
-                continue
+            # if self.load_object and len(self.object_results[image_id]) == 0: #(image_id not in self.object_results or ):
+            #     # image does not have any objects
+            #     continue
             verb = self.annotation[image_id]['verb']
             if self.filter_irrelevant_verbs and verb not in self.sr_mapping_verb:
                 continue

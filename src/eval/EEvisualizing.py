@@ -8,26 +8,48 @@ import shutil
 
 class EDVisualizer():
     def __init__(self, JMEE_data_json):
-        self.sent_info = self._load_sent_info(JMEE_data_json)
+        self.sent_info = defaultdict(lambda : defaultdict())
+        self._load_sent_info(JMEE_data_json)
 
     def _load_sent_info(self, JMEE_data_json):
-        sent_info = defaultdict(lambda : defaultdict())
         raw_data = json.load(open(JMEE_data_json))
         for data_instance in raw_data:
             sent_id = data_instance['sentence_id']
             words = data_instance['words']
-            index_all = data_instance['index_all']
+            # index_all = data_instance['index_all']
             # index = data_instance['index']
             # entity = data_instance['golden-entity-mentions']
             sentence = data_instance['sentence']
 
-            sent_info[sent_id]['words'] = words
-            sent_info[sent_id]['index_all'] = index_all
-            # sent_info[sent_id]['index'] = index
-            # sent_info[sent_id]['entity'] = entity
-            sent_info[sent_id]['sentence'] = sentence
+            self.sent_info[sent_id]['words'] = words
+            # self.sent_info[sent_id]['index_all'] = index_all
+            # self.sent_info[sent_id]['index'] = index
+            # self.sent_info[sent_id]['entity'] = entity
+            self.sent_info[sent_id]['sentence'] = sentence
 
-        return sent_info
+
+    def save_json(self, predicted_event_triggers, predicted_events, sent_id, ee_role_i2s, text_result_json):
+        sent_id = sent_id[0]
+        for result_dict in predicted_events:
+            for key in result_dict:
+                # print('self.sent_info[sent_id]', self.sent_info)
+                # print('sent_id', sent_id)
+                eventstart_sentid, event_end, event_type_ace = key
+                trigger_word = ' '.join(self.sent_info[sent_id]['words'][int(eventstart_sentid):int(event_end)])
+                text_result_json[eventstart_sentid]['sentence_id'] = sent_id
+                text_result_json[eventstart_sentid]['sentence'] = self.sent_info[sent_id]['sentence']
+                text_result_json[eventstart_sentid]['sentence_tokens'] = self.sent_info[sent_id]['words']
+                text_result_json[eventstart_sentid]['pred_event_type'] = event_type_ace
+                text_result_json[eventstart_sentid]['pred_trigger'] = {'index_start': eventstart_sentid, 'index_end':event_end, 'text':trigger_word}
+                text_result_json[eventstart_sentid]['pred_roles'] = defaultdict(list)
+
+                args = result_dict[key]
+                for arg_start, arg_end, arg_type in args:
+                    arg_word = ' '.join(self.sent_info[sent_id]['words'][int(arg_start):int(arg_end)])
+                    # arg_start_offset, arg_end_offset = self.get_offset_by_idx(sent_id, arg_start, arg_end)
+                    role_name_ace = ee_role_i2s[arg_type]
+                    text_result_json[eventstart_sentid]['pred_roles'][role_name_ace].append( {'index_start':arg_start, 'index_end':arg_end, 'text':arg_word} )
+
 
 
     def visualize_html(self, predicted_event_triggers, predicted_events, sent_id, ee_role_i2s, visual_writer):

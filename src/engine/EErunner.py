@@ -175,15 +175,16 @@ class EERunner(object):
         LabelField = Field(lower=False, batch_first=True, pad_token='0', unk_token=None)
         EventsField = EventField(lower=False, batch_first=True)
         EntitiesField = EntityField(lower=False, batch_first=True, use_vocab=False)
+        SENTIDField = SparseField(sequential=False, use_vocab=False, batch_first=True)
 
         if self.a.amr:
-            colcc = 'amr-colcc'
+            colcc = 'simple-parsing'
         else:
-            colcc = 'stanford-colcc'
+            colcc = 'combined-parsing'
         print(colcc)
 
         train_ee_set = ACE2005Dataset(path=self.a.train_ee,
-                                   fields={"words": ("WORDS", WordsField),
+                                   fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
                                            "pos-tags": ("POSTAGS", PosTagsField),
                                            "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                            colcc: ("ADJM", AdjMatrixField),
@@ -193,7 +194,7 @@ class EERunner(object):
                                    amr=self.a.amr, keep_events=1)
 
         dev_ee_set = ACE2005Dataset(path=self.a.dev_ee,
-                                 fields={"words": ("WORDS", WordsField),
+                                 fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
                                          "pos-tags": ("POSTAGS", PosTagsField),
                                          "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                          colcc: ("ADJM", AdjMatrixField),
@@ -203,7 +204,7 @@ class EERunner(object):
                                  amr=self.a.amr, keep_events=0)
 
         test_ee_set = ACE2005Dataset(path=self.a.test_ee,
-                                  fields={"words": ("WORDS", WordsField),
+                                  fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
                                           "pos-tags": ("POSTAGS", PosTagsField),
                                           "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                           colcc: ("ADJM", AdjMatrixField),
@@ -231,7 +232,7 @@ class EERunner(object):
         # print("O label for AE is", consts.ROLE_O_LABEL)
 
         dev_ee_set1 = ACE2005Dataset(path=self.a.dev_ee,
-                                  fields={"words": ("WORDS", WordsField),
+                                  fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
                                           "pos-tags": ("POSTAGS", PosTagsField),
                                           "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                           colcc: ("ADJM", AdjMatrixField),
@@ -241,7 +242,7 @@ class EERunner(object):
                                   amr=self.a.amr, keep_events=1, only_keep=True)
 
         test_ee_set1 = ACE2005Dataset(path=self.a.test_ee,
-                                   fields={"words": ("WORDS", WordsField),
+                                   fields={"sentence_id": ("SENTID", SENTIDField), "words": ("WORDS", WordsField),
                                            "pos-tags": ("POSTAGS", PosTagsField),
                                            "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                            colcc: ("ADJM", AdjMatrixField),

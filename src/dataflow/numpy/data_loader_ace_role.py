@@ -83,9 +83,9 @@ class ACERoleDataLoader(object):
         # LEMMAS = fields["lemma"]
         ENTITYLABELS = fields["golden-entity-mentions"]
         if amr:
-            colcc = "amr-colcc"
+            colcc = "simple-parsing"
         else:
-            colcc = "stanford-colcc"
+            colcc = "combined-parsing"
         # print(colcc)
         ADJMATRIX = fields[colcc]
         LABELS = fields["golden-event-mentions"]
@@ -153,7 +153,7 @@ class ACERoleDataLoader(object):
     #         # pos = map_to_ids(sent['pos-tags'], constant.POS_TO_ID)
     #         # dep_rel_dict = [constant.PAD_TOKEN] * l
     #         head = [0] * l
-    #         for dep_info in sent['stanford-colcc']:
+    #         for dep_info in sent['combined-parsing']:
     #             # print(dep_info)
     #             tabs = dep_info.split('/')
     #             idx = int(tabs[1].replace("dep=", ""))

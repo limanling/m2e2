@@ -1,8 +1,10 @@
 import os
 from math import ceil
+import ujson as json
 
 import torch
 from torchtext.data import BucketIterator
+from collections import defaultdict
 
 # import sys
 #sys.path.append('/dvmm-filer2/users/manling/mm-event-graph2')
@@ -10,9 +12,10 @@ from src.util.util_model import progressbar
 from src.dataflow.torch.Sentence import Token
 
 
-def batch_process_ee(batch, all_events, all_events_, all_y, all_y_, all_tokens,
+def batch_process_ee(batch, all_events, all_events_, all_y, all_y_, all_tokens, all_sentids, text_result,
                      hyps, word_i2s, label_i2s, role_i2s, weight, arg_weight,
-                     model, tester, device, need_backward, role_mask):
+                     model, tester, device, need_backward, role_mask, visualizer=None):
+    sent_id = batch.SENTID
     words, x_len = batch.WORDS
     postags = batch.POSTAGS
     entitylabels = batch.ENTITYLABELS  # entity type
@@ -65,18 +68,22 @@ def batch_process_ee(batch, all_events, all_events_, all_y, all_y_, all_tokens,
     bp, br, bf = tester.calculate_report(y, y__, transform=True)
     all_y.extend(y)
     all_y_.extend(y__)
+    all_sentids.extend(sent_id)
+
+    if visualizer is not None:
+        visualizer.save_json(y__, predicted_events, sent_id, role_i2s, text_result)
 
     return loss, bp, br, bf
 
-def run_over_batch_ee(batch, running_loss, cnt, all_events, all_events_, all_y, all_y_, all_tokens,
+def run_over_batch_ee(batch, running_loss, cnt, all_events, all_events_, all_y, all_y_, all_tokens, all_sentids, text_result,
                    model, optimizer, MAX_STEP, need_backward, tester, hyps, device, word_i2s, label_i2s,
-                  role_i2s, maxnorm, weight, arg_weight, role_mask):
+                  role_i2s, maxnorm, weight, arg_weight, role_mask, visualizer=None):
     if need_backward:
         optimizer.zero_grad()
 
-    loss, bp, br, bf = batch_process_ee(batch, all_events, all_events_, all_y, all_y_, all_tokens,
+    loss, bp, br, bf = batch_process_ee(batch, all_events, all_events_, all_y, all_y_, all_tokens, all_sentids, text_result,
                      hyps, word_i2s, label_i2s, role_i2s, weight, arg_weight,
-                     model, tester, device, need_backward, role_mask)
+                     model, tester, device, need_backward, role_mask, visualizer)
 
     cnt += 1
     other_information = ""
@@ -111,7 +118,7 @@ def add_tokens(words, y, y_, x_len, all_tokens, word_i2s, label_i2s):
 
 
 def run_over_data(model, optimizer, data_iter, MAX_STEP, need_backward, tester, hyps, device, word_i2s, label_i2s,
-                  role_i2s, maxnorm, weight, arg_weight, role_mask, save_output):
+                  role_i2s, maxnorm, weight, arg_weight, role_mask, save_output, visualizer=None):
     if need_backward:
         model.train()
     else:
@@ -126,14 +133,16 @@ def run_over_data(model, optimizer, data_iter, MAX_STEP, need_backward, tester, 
     all_y_ = []
     all_events = []
     all_events_ = []
+    all_sentids = []
+    text_result = defaultdict(lambda : defaultdict())
 
     cnt = 0
     # print(data_iter)
     for batch in data_iter:
         running_loss, cnt, all_events, all_events_, all_y, all_y_, all_tokens = \
-            run_over_batch_ee(batch, running_loss, cnt, all_events, all_events_, all_y, all_y_, all_tokens,
+            run_over_batch_ee(batch, running_loss, cnt, all_events, all_events_, all_y, all_y_, all_tokens, all_sentids, text_result, 
                 model, optimizer, MAX_STEP, need_backward, tester, hyps, device, word_i2s, label_i2s,
-                role_i2s, maxnorm, weight, arg_weight, role_mask)
+                role_i2s, maxnorm, weight, arg_weight, role_mask, visualizer)
 
     if save_output:
         with open(save_output, "w", encoding="utf-8") as f:
@@ -142,6 +151,11 @@ def run_over_data(model, optimizer, data_iter, MAX_STEP, need_backward, tester, 
                     # to match conll2000 format
                     f.write("%s %s %s\n" % (token.word, token.triggerLabel, token.predictedLabel))
                 f.write("\n")
+        json.dump(all_events_, open(save_output+'.all_events_.json', 'w'), indent=2) # ae_logits_key.append((i, st, ed, trigger_type_str, e_st, e_ed, e_type_str))
+        json.dump(all_y_, open(save_output+'.all_y_.json', 'w'), indent=2)
+        json.dump(text_result, open(save_output+'.text_result.json', 'w'), indent=2)
+        
+
 
     running_loss = running_loss / cnt
     ep, er, ef = tester.calculate_report(all_y, all_y_, transform=False)

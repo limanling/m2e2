@@ -354,6 +354,7 @@ def calc_correctness_box_uion(annot_all_norm, bbox_all_norm, iou_thr=.5, count_i
 
     # for bbox_p in bbox_norm:
     # iou_value_max = 0.0
+    iou_value = 0.0
     annot_all_norm_union = union(annot_all_norm)
     bbox_all_norm_union = union(bbox_all_norm)
 

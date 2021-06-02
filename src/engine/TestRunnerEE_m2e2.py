@@ -22,6 +22,7 @@ from src.util import consts
 from src.dataflow.torch.Data import ACE2005Dataset, MultiTokenField, SparseField, EventField, EntityField
 from src.models.ee import EDModel
 from src.eval.EEtesting import EDTester
+from src.eval.EEvisualizing import EDVisualizer
 from src.engine.EEtraining import ee_train
 from src.util.util_model import log
 from src.engine.EEtraining import run_over_data
@@ -111,14 +112,16 @@ class EERunnerTest(object):
         LabelField = Field(lower=False, batch_first=True, pad_token='0', unk_token=None)
         EventsField = EventField(lower=False, batch_first=True)
         EntitiesField = EntityField(lower=False, batch_first=True, use_vocab=False)
+        SENTIDField = SparseField(sequential=False, use_vocab=False, batch_first=True)
         if self.a.amr:
-            colcc = 'amr-colcc'
+            colcc = 'simple-parsing'
         else:
-            colcc = 'stanford-colcc'
+            colcc = 'combined-parsing'
         print(colcc)
 
         train_ee_set = ACE2005Dataset(path=self.a.train_ee,
-                                      fields={"words": ("WORDS", WordsField),
+                                      fields={"sentence_id": ("SENTID", SENTIDField),
+                                            "words": ("WORDS", WordsField),
                                               "pos-tags": ("POSTAGS", PosTagsField),
                                               "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                               colcc: ("ADJM", AdjMatrixField),
@@ -128,7 +131,8 @@ class EERunnerTest(object):
                                       amr=self.a.amr, keep_events=1)
 
         dev_ee_set = ACE2005Dataset(path=self.a.dev_ee,
-                                    fields={"words": ("WORDS", WordsField),
+                                    fields={"sentence_id": ("SENTID", SENTIDField),
+                                            "words": ("WORDS", WordsField),
                                             "pos-tags": ("POSTAGS", PosTagsField),
                                             "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                             colcc: ("ADJM", AdjMatrixField),
@@ -138,7 +142,8 @@ class EERunnerTest(object):
                                     amr=self.a.amr, keep_events=0)
 
         test_ee_set = ACE2005Dataset(path=self.a.test_ee,
-                                     fields={"words": ("WORDS", WordsField),
+                                     fields={"sentence_id": ("SENTID", SENTIDField),
+                                            "words": ("WORDS", WordsField),
                                              "pos-tags": ("POSTAGS", PosTagsField),
                                              "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                              colcc: ("ADJM", AdjMatrixField),
@@ -154,7 +159,6 @@ class EERunnerTest(object):
 
             # only for grounding
             IMAGEIDField = SparseField(sequential=False, use_vocab=False, batch_first=True)
-            SENTIDField = SparseField(sequential=False, use_vocab=False, batch_first=True)
             # IMAGEField = SparseField(sequential=False, use_vocab=False, batch_first=True)
 
             transform = transforms.Compose([
@@ -276,6 +280,7 @@ class EERunnerTest(object):
             self.a.hps["ae_oc"] = len(EventsField.vocab.itos)
 
         tester = self.get_tester(LabelField.vocab.itos, EventsField.vocab.itos)
+        visualizer = EDVisualizer(self.a.gt_voa_text)
 
         if self.a.finetune:
             log('init model from ' + self.a.finetune)
@@ -301,7 +306,8 @@ class EERunnerTest(object):
         #                            shuffle=False, device=-1,
         #                            sort_key=lambda x: len(x.POSTAGS))
         test_m2e2_set = ACE2005Dataset(path=self.a.gt_voa_text,
-                                     fields={"words": ("WORDS", WordsField),
+                                     fields={"sentence_id": ("SENTID", SENTIDField),
+                                            "words": ("WORDS", WordsField),
                                              "pos-tags": ("POSTAGS", PosTagsField),
                                              "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),
                                              colcc: ("ADJM", AdjMatrixField),
@@ -341,10 +347,9 @@ class EERunnerTest(object):
                                                          optimizer=None,
                                                          model=model,
                                                          need_backward=False,
-                                                         MAX_STEP=ceil(len(
-                                                             test_m2e2_set) /
-                                                                       self.a.batch),
+                                                         MAX_STEP=len(test_m2e2_iter),
                                                          tester=tester,
+                                                         visualizer=visualizer,
                                                          hyps=model.hyperparams,
                                                          device=model.device,
                                                          maxnorm=self.a.maxnorm,

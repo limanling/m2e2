@@ -108,9 +108,10 @@ class TestSRRunner(object):
         # only for ee
         LabelField = Field(lower=False, batch_first=True, pad_token='0', unk_token=None)
         EventsField = EventField(lower=False, batch_first=True)
-        colcc = 'stanford-colcc'
+        SENTIDField = SparseField(sequential=False, use_vocab=False, batch_first=True)
+        colcc = 'combined-parsing'
         train_ee_set = ACE2005Dataset(path=self.a.train_ee,
-                                      fields={
+                                      fields={"sentence_id": ("SENTID", SENTIDField),
                                               "words": ("WORDS", WordsField),
                                               "pos-tags": ("POSTAGS", PosTagsField),
                                               "golden-entity-mentions": ("ENTITYLABELS", EntityLabelsField),

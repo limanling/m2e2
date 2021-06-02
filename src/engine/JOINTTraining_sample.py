@@ -23,7 +23,7 @@ def run_over_data_joint(model_ee, model_sr, model_g, optimizer, data_iters, data
                             img_dir_grounding, transform,
                             word_i2s, label_i2s, role_i2s, weight, arg_weight, verb_roles, save_output, ee_role_masks,
                             load_object=False, object_results_g=None, object_label_g=None,
-                            object_detection_threshold_g=.2, vocab_objlabel=None
+                            object_detection_threshold_g=.2, vocab_objlabel=None, ee_visualizer=None
                         ):
     # model_ee = model_ee.module
     # model_sr = model_sr.module
@@ -49,6 +49,8 @@ def run_over_data_joint(model_ee, model_sr, model_g, optimizer, data_iters, data
     all_y_ = []
     all_events = []
     all_events_ = []
+    all_sentids = []
+    text_result = defaultdict(lambda : defaultdict())
     # sr
     all_results = dict()
     all_verbs = []
@@ -133,9 +135,9 @@ def run_over_data_joint(model_ee, model_sr, model_g, optimizer, data_iters, data
                 batch = next(ee_iter)
             # print(task, batch)
             ee_running_loss, cnt_ee, all_events, all_events_, all_y, all_y_, all_tokens = \
-                run_over_batch_ee(batch, ee_running_loss, cnt_ee, all_events, all_events_, all_y, all_y_, all_tokens,
+                run_over_batch_ee(batch, ee_running_loss, cnt_ee, all_events, all_events_, all_y, all_y_, all_tokens, all_sentids, text_result,
                                   model_ee, optimizer, MAX_STEP_ee, need_backward, ee_tester, ee_hyps, device, word_i2s, label_i2s,
-                                  role_i2s, maxnorm, weight, arg_weight, ee_role_masks)
+                                  role_i2s, maxnorm, weight, arg_weight, ee_role_masks, ee_visualizer)
         elif task == 'g':
             try:
                 batch = next(g_iter)
@@ -680,10 +682,10 @@ def joint_train(model_ee, model_sr, model_g,
         weight=parser.ee_label_weight,
         verb_roles=train_set_sr.get_verb_role_mapping(),
         save_output=os.path.join(parser.out,
-                                 "test_final.txt" % (
+                                 "test_final_%d.txt" % (
                                          i + 1)),
         ee_role_masks=parser.role_mask,
-        # arg_weight=parser.ee_arg_weight,
+        arg_weight=parser.ee_arg_weight,
         load_object=parser.add_object,
         object_results_g=object_results,
         object_label_g=object_label,

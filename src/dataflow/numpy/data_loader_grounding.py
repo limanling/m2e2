@@ -68,9 +68,9 @@ class GroundingDataset(Corpus):
         # LEMMAS = fields["lemma"]
         ENTITYLABELS = fields["golden-entity-mentions"]
         if amr:
-            colcc = "amr-colcc"
+            colcc = "simple-parsing"
         else:
-            colcc = "stanford-colcc"
+            colcc = "combined-parsing"
         ADJMATRIX = fields[colcc]
         ENTITIES = fields["all-entities"]
 
@@ -119,6 +119,9 @@ def unpack_grounding(batch, device, transform, img_dir_grounding, ee_hyps,
         bbox_entities_region_all = []
         bbox_entities_label_all = []
         object_num_all = []
+
+    # for inst in object_results:
+    #     print(object_results)
 
     for img_id in image_id:
         if len(img_id) > 0:
@@ -231,9 +234,9 @@ class M2E2Dataset(Corpus):
         POSTAGS = fields["pos-tags"]
         ENTITYLABELS = fields["golden-entity-mentions"]
         if amr:
-            colcc = "amr-colcc"
+            colcc = "simple-parsing"
         else:
-            colcc = "stanford-colcc"
+            colcc = "combined-parsing"
         ADJMATRIX = fields[colcc]
         ENTITIES = fields["all-entities"]
         LABELS = fields["golden-event-mentions"]

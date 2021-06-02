@@ -122,9 +122,9 @@ class GroundingRunner(object):
         EntitiesField = EntityField(lower=False, batch_first=True, use_vocab=False)
 
         if self.a.amr:
-            colcc = 'amr-colcc'
+            colcc = 'simple-parsing'
         else:
-            colcc = 'stanford-colcc'
+            colcc = 'combined-parsing'
         print(colcc)
 
         train_set = GroundingDataset(path=self.a.train,

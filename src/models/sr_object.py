@@ -133,7 +133,7 @@ class SRModel_Object(Model):
         :param bbox_entities_label: [batch, object_num]
         :param object_num_batch: narray, [batch, ]
         :param BATCH_SIZE:
-        :param OBJTECT_LEN:
+        :param OBJECT_LEN:
         :param SEQ_LEN:
         :return:
         '''
@@ -143,7 +143,7 @@ class SRModel_Object(Model):
         verb_feats = verb_feats.view(BATCH_SIZE, -1)  # batchsize * (2048*imageLength_sqare)
 
         # print('BATCH_SIZE', BATCH_SIZE)
-        # print('OBJTECT_LEN', OBJTECT_LEN)
+        # print('OBJECT_LEN', OBJECT_LEN)
         # print('SEQ_LEN', SEQ_LEN)
         # print('image_batch', image_batch.size())
         # print('input_image_', input_image_.size())
@@ -179,14 +179,15 @@ class SRModel_Object(Model):
         #         adj[i][0][j+1][j+1] = 1
         # adj = adj.to(self.device)
         adj = np.zeros((BATCH_SIZE, 2, SEQ_LEN, SEQ_LEN), dtype='float32')
-        adj[:, 0, 0, 1:] = 1.0
-        adj[:, 1, 1:, 0] = 1.0
+        adj[:, 0, 0, 2:] = 1.0 # the paded image node in bbox region list, should not connect to anyone # adj[:, 0, 0, 1:] = 1.0
+        adj[:, 1, 2:, 0] = 1.0 # the paded image node in bbox region list, should not connect to anyone # adj[:, 1, 1:, 0] = 1.0
         adj = torch.from_numpy(adj).to(self.device)
 
         # project to word space
         verb_emb = self.feat2emb_verb(verb_feats)
         noun_emb = self.feat2emb_noun(input_regions_)
 
+        # gcn to project to the common space
         noun_emb_common = noun_emb
         verb_emb_common = verb_emb
 
@@ -219,17 +220,15 @@ class SRModel_Object(Model):
 
         # Create the mask matrix (mask: [1,1,1,0,0]: the padded one is 0)
         # arg_mask = np.zeros(shape=args_batch.size(), dtype=np.uint8)
-        # for i in range(BATCH_SIZE):
-        #     # for j in range(role_num_batch[i]):
-        #     s_len = int(arg_num_batch[i])
-        #     arg_mask[i, 0:s_len] = np.ones(shape=(s_len), dtype=np.uint8)
-        # arg_mask = torch.ByteTensor(arg_mask).to(self.device)
-        bbox_mask = np.zeros(shape=bbox_entities_label.size(), dtype=np.uint8)
-        for i in range(BATCH_SIZE):
-            s_len = int(bbox_num_batch[i])
-            bbox_mask[i, 0:s_len] = np.ones(shape=(s_len), dtype=np.uint8)
-        bbox_mask = torch.ByteTensor(bbox_mask).to(self.device)
-
+        ranges = torch.arange(0, OBJECT_LEN).long().to(self.device)
+        ranges = ranges.unsqueeze(0).expand(BATCH_SIZE, OBJECT_LEN)
+        lens_expand = torch.tensor(bbox_num_batch, device=self.device).unsqueeze(1).expand(BATCH_SIZE, OBJECT_LEN)
+        bbox_mask = ranges < lens_expand
+        bbox_mask[:, 0] = 0  # mask the image node, the remainings are object nodes
+        bbox_mask = bbox_mask.unsqueeze(2)
+        bbox_mask_noun = bbox_mask.expand(BATCH_SIZE, OBJECT_LEN, self.hyperparams["wnemb_size"])
+        bbox_mask_role = bbox_mask.expand(BATCH_SIZE, OBJECT_LEN, self.role_num)
+        
         verb_emb_common, noun_emb_common, verb_emb, noun_emb, heatmap = self.get_common_feature(img_id_batch, image_batch,
                            bbox_entities_id, bbox_entities_region, bbox_entities_label,
                            bbox_num_batch, BATCH_SIZE, OBJECT_LEN, SEQ_LEN)
@@ -267,13 +266,13 @@ class SRModel_Object(Model):
                                                                     noun_logits)
 
         # mask and log_softmax
-        for i in range(BATCH_SIZE):
-            s_len = int(bbox_num_batch[i])
-            role_logits[i, s_len:] = 1e-45
-            noun_logits[i, s_len:] = 1e-45
-            event_ae_logits[i, s_len:] = 1e-45
-        role_logits = F.log_softmax(role_logits, dim=-1).view(BATCH_SIZE, OBJECT_LEN, -1)
-        noun_logits = F.log_softmax(noun_logits, dim=-1).view(BATCH_SIZE, OBJECT_LEN, -1)
+        noun_logits = noun_logits.view(BATCH_SIZE, OBJECT_LEN, -1)
+        bbox_mask_role = bbox_mask_role.float()
+        bbox_mask_noun = bbox_mask_noun.float()
+        role_logits = role_logits + (bbox_mask_role + 1e-45).log()
+        noun_logits = noun_logits + (bbox_mask_noun + 1e-45).log()
+        role_logits = F.log_softmax(role_logits, dim=-1)
+        noun_logits = F.log_softmax(noun_logits, dim=-1)
         event_ae_logits = F.log_softmax(event_ae_logits, dim=-1).view(BATCH_SIZE, OBJECT_LEN, -1)
         #   = masked_log_softmax(event_ae_logits, bbox_mask, dim=-1)
         # event_logits, event_ae_logits = None, None
@@ -328,7 +327,7 @@ class SRModel_Object(Model):
         # pairwise_cost_emb = torch.sum(- noun_logits.unsqueeze(2) - emb_entity_gt_masked.unsqueeze(1)).pow(2))  # [batch, obj_num, arg_num]
         pairwise_cost_emb = torch.zeros(BATCH_SIZE, OBJ_NUM, ARG_NUM).to(self.device)
         for i in range(BATCH_SIZE):
-            for bbox_idx in range(num_bbox[i]):
+            for bbox_idx in range(1, num_bbox[i]): #range(num_bbox[i]):
                 pairwise_cost_emb[i][bbox_idx][:num_entity_gt[i]] = - torch.index_select(noun_logits[i][bbox_idx],
                                                                                          dim=0,
                                                                                          index=idx_entity_gt[i][:num_entity_gt[i]]
@@ -342,7 +341,7 @@ class SRModel_Object(Model):
         # loss of every <role-rolegt> pairs (loss of role classifier)
         pairwise_cost_role = torch.zeros(BATCH_SIZE, OBJ_NUM, ARG_NUM).to(self.device)
         for i in range(BATCH_SIZE):
-            for bbox_idx in range(num_bbox[i]):
+            for bbox_idx in range(1, num_bbox[i]): #range(num_bbox[i]):
                 pairwise_cost_role[i][bbox_idx][:num_entity_gt[i]] = - torch.index_select(role_logits[i][bbox_idx],
                                                                                          dim=0,
                                                                                          index=role_gt_type[i][:num_entity_gt[i]]
