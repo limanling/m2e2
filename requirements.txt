@@ -3,7 +3,7 @@ ujson==1.35
 seqeval==0.0.12
 six==1.12.0
 jieba==0.39
-nltk==3.4.5
+nltk==3.6.5
 scipy==1.3.0
 torchvision==0.3.0
 Pillow==8.1.1
