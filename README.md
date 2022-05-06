@@ -36,7 +36,7 @@ We crawled VOA image-captions to train the common space, the [image-caption pair
 
 ### M2E2 (Multimedia Event Extraction Benchmark)
 
-The images and text articles are in [m2e2_rawdata](https://drive.google.com/file/d/1xtFMjt_eYgeBts5rBomOWbPo7wV_mnhy/view?usp=sharing), and annotations are in [m2e2_annotation](http://blender.cs.illinois.edu/software/m2e2/m2e2_v0.1/m2e2_annotations.zip).
+The images and text articles are in [m2e2_rawdata](https://drive.google.com/file/d/1xtFMjt_eYgeBts5rBomOWbPo7wV_mnhy/view?usp=sharing), and annotations are in [m2e2_annotation](http://blender.cs.illinois.edu/software/m2e2/m2e2_v0.1/m2e2_annotations.zip) under `data` directory.
 
 ### Vocabulary
 Preprocessed vocabulary is in [PreprocessedVocab](https://drive.google.com/drive/folders/1MWklNkpedJp-P80wpKF-WOQAvYaYKzP2?usp=sharing).
